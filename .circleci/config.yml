@@ -1,0 +1,34 @@
+version: 2.1
+executors:
+  shellcheck-executor:
+    docker:
+      - image: koalaman/shellcheck-alpine
+    resource_class: small
+
+jobs:
+  shellcheck:
+    executor: shellcheck-executor
+    steps:
+      - checkout
+      - run:
+          name: Linter for bash scripts
+          command: |
+            EXIT_CODE=0
+            apk add grep --upgrade
+            shell_files=$(grep -lrni '^#!/bin/[bash|sh]' --exclude-dir '.git')
+            for file in $shell_files; do
+              echo "-------------------------------------------"
+              echo -e "\033[1;36mChecking file: $file\033[0m"
+              if shellcheck --check-sourced --color --severity=info  $file; then
+                echo "...ok"
+              else
+                EXIT_CODE=1
+              fi
+            done
+            exit $EXIT_CODE
+
+workflows:
+  version: 2
+  main:
+    jobs:
+      - shellcheck
